@@ -1,4 +1,4 @@
-Deno.serve((req) => {
+Deno.serve({ port: Number(Deno.env.get("PORT") || 8000) }, (req) => {
   const url = new URL(req.url);
 
   if (url.pathname === "/http") {
