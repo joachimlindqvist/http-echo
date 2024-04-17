@@ -11,11 +11,21 @@ Deno.serve({ port: Number(Deno.env.get("PORT") || 8000) }, (req) => {
           const te = new TextEncoder();
           controller.enqueue(te.encode((++i).toString()));
           const interval = setInterval(() => {
-            if (i <= iterations) {
-              controller.enqueue(te.encode((++i).toString()));
-            } else {
-              clearInterval(interval);
-              controller.close();
+            try {
+              if (i <= iterations) {
+                controller.enqueue(te.encode((++i).toString()));
+              } else {
+                clearInterval(interval);
+                controller.close();
+              }
+            } catch (e) {
+              if (
+                e instanceof TypeError &&
+                e.message === "The stream controller cannot close or enqueue."
+              ) {
+                return;
+              }
+              throw e;
             }
           }, 1000);
         },
