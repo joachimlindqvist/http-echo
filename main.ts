@@ -1,8 +1,81 @@
-export function add(a: number, b: number): number {
-  return a + b;
-}
+Deno.serve((req) => {
+  const url = new URL(req.url);
 
-// Learn more at https://deno.land/manual/examples/module_metadata#concepts
-if (import.meta.main) {
-  console.log("Add 2 + 3 =", add(2, 3));
-}
+  if (url.pathname === "/http") {
+    const iterations = Number(url.searchParams.get("lines") ?? "1");
+    let i = 0;
+
+    return new Response(
+      new ReadableStream({
+        start(controller) {
+          const te = new TextEncoder();
+          controller.enqueue(te.encode((++i).toString()));
+          const interval = setInterval(() => {
+            if (i <= iterations) {
+              controller.enqueue(te.encode((++i).toString()));
+            } else {
+              clearInterval(interval);
+              controller.close();
+            }
+          }, 1000);
+        },
+      })
+    );
+  } else if (url.pathname === "/ws") {
+    const { response, socket } = Deno.upgradeWebSocket(req);
+
+    const iterations = Number(url.searchParams.get("lines") ?? "1");
+    let i = 0;
+
+    socket.send((++i).toString());
+    const interval = setInterval(() => {
+      if (i <= iterations) {
+        socket.send((++i).toString());
+      } else {
+        clearInterval(interval);
+        socket.close();
+      }
+    }, 1000);
+
+    return response;
+  } else if (url.pathname === "/sse") {
+    const iterations = Number(url.searchParams.get("lines") ?? "1");
+    let i = 0;
+
+    return new Response(
+      new ReadableStream({
+        start(controller) {
+          const te = new TextEncoder();
+          controller.enqueue(te.encode(`event: message\ndata: ${++i}\n\n`));
+          const interval = setInterval(() => {
+            try {
+              if (i <= iterations) {
+                controller.enqueue(
+                  te.encode(`event: message\ndata: ${++i}\n\n`)
+                );
+              } else {
+                clearInterval(interval);
+                controller.close();
+              }
+            } catch (e) {
+              if (
+                e instanceof TypeError &&
+                e.message === "The stream controller cannot close or enqueue."
+              ) {
+                return;
+              }
+              throw e;
+            }
+          }, 1000);
+        },
+      }),
+      {
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }
+    );
+  }
+
+  return new Response("not found", { status: 404 });
+});
