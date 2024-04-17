@@ -87,5 +87,5 @@ Deno.serve({ port: Number(Deno.env.get("PORT") || 8000) }, (req) => {
     );
   }
 
-  return new Response("not found", { status: 404 });
+  return new Response("OK", { status: 200 });
 });
