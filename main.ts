@@ -38,17 +38,22 @@ Deno.serve({ port: Number(Deno.env.get("PORT") || 8000) }, (req) => {
     let i = 0;
 
     try {
-      socket.send((++i).toString());
-      const interval = setInterval(() => {
-        if (i <= iterations) {
-          socket.send((++i).toString());
-        } else {
-          clearInterval(interval);
-          socket.close();
-        }
-      }, 1000);
+      socket.addEventListener("open", () => {
+        socket.send((++i).toString());
+        const interval = setInterval(() => {
+          if (i <= iterations) {
+            socket.send((++i).toString());
+          } else {
+            clearInterval(interval);
+            socket.close();
+          }
+        }, 1000);
+      });
     } catch (e) {
       console.error(e);
+      if (!socket.CLOSED) {
+        socket.close();
+      }
     }
 
     return response;
