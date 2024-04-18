@@ -37,15 +37,19 @@ Deno.serve({ port: Number(Deno.env.get("PORT") || 8000) }, (req) => {
     const iterations = Number(url.searchParams.get("lines") ?? "1");
     let i = 0;
 
-    socket.send((++i).toString());
-    const interval = setInterval(() => {
-      if (i <= iterations) {
-        socket.send((++i).toString());
-      } else {
-        clearInterval(interval);
-        socket.close();
-      }
-    }, 1000);
+    try {
+      socket.send((++i).toString());
+      const interval = setInterval(() => {
+        if (i <= iterations) {
+          socket.send((++i).toString());
+        } else {
+          clearInterval(interval);
+          socket.close();
+        }
+      }, 1000);
+    } catch (e) {
+      console.error(e);
+    }
 
     return response;
   } else if (url.pathname === "/sse") {
